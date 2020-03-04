@@ -85,60 +85,64 @@ def get_comments(url):
 
     if(comments_pages is not None):
         comments_pages_links = comments_pages.findAll('li')
-        comments_page_count = len(comments_pages_links)
 
-        i = 0
+        if(comments_pages_links is not None):
+            comments_page_count = len(comments_pages_links)
 
-        comments = []
-        clean_user_comments = []
-        clean_admin_comments = []
-        clean_user_speed = []
-        clean_user_service = []
-        clean_user_taste = []
-        
-        while (i <= 7):
+            i = 0
+
+            comments = []
+            clean_user_comments = []
+            clean_admin_comments = []
+            clean_user_speed = []
+            clean_user_service = []
+            clean_user_taste = []
             
-            if(comments_page_count == 1):
-                sub_url = url
-            else:
-                sub_url = url + '?section=comments&page=' + str(i)
+            while (i <= 7):
+                
+                if(comments_page_count == 1):
+                    sub_url = url
+                else:
+                    sub_url = url + '?section=comments&page=' + str(i)
 
 
-            sub = linker(sub_url)
-            sub_soup = sub
+                sub = linker(sub_url)
+                sub_soup = sub
 
-            comments_all = sub_soup.find('div', class_= 'comments allCommentsArea') 
-            
-            user_comment_speed = comments_all.findAll('div', class_='speed')
-            user_comment_service = comments_all.findAll('div', class_='flavour')
-            user_comment_taste = comments_all.findAll('div', class_='serving')
-            user_comments = comments_all.findAll('div', class_='comment row')
-            admin_comments = comments_all.findAll('div', class_='comments-body comments-restaurant')
+                comments_all = sub_soup.find('div', class_= 'comments allCommentsArea') 
+                
+                user_comment_speed = comments_all.findAll('div', class_='speed')
+                user_comment_service = comments_all.findAll('div', class_='flavour')
+                user_comment_taste = comments_all.findAll('div', class_='serving')
+                user_comments = comments_all.findAll('div', class_='comment row')
+                admin_comments = comments_all.findAll('div', class_='comments-body comments-restaurant')
 
-            for j in user_comments:
-                clean_user_comments.append(j.p.text)
+                for j in user_comments:
+                    clean_user_comments.append(j.p.text)
 
-            for j in admin_comments:
-                clean_admin_comments.append(j.p.text)    
+                for j in admin_comments:
+                    clean_admin_comments.append(j.p.text)    
 
-            for j in user_comment_speed:
-                clean_user_speed.append(j.text)
+                for j in user_comment_speed:
+                    clean_user_speed.append(j.text)
 
-            for j in user_comment_service:
-                clean_user_service.append(j.text)
+                for j in user_comment_service:
+                    clean_user_service.append(j.text)
 
-            for j in user_comment_taste:
-                clean_user_taste.append(j.text)    
+                for j in user_comment_taste:
+                    clean_user_taste.append(j.text)    
 
-            i += 1
+                i += 1
 
 
-        clean_user_comments = user_admin_cleaner(clean_user_comments, clean_admin_comments)    
+            clean_user_comments = user_admin_cleaner(clean_user_comments, clean_admin_comments)    
 
-        for i in range(len(clean_user_comments)):
-            comments.append(comment(clean_user_speed[i], clean_user_service[i], clean_user_taste[i], clean_user_comments[i]))
+            for i in range(len(clean_user_comments)):
+                comments.append(comment(clean_user_speed[i], clean_user_service[i], clean_user_taste[i], clean_user_comments[i]))
 
-        return comments
+            return comments
+        else:
+            return []
     else:
         return []
 
@@ -163,3 +167,16 @@ def get_current_restaurant_information(city, district):
         restaurants.append(lokanta(r_Link, r_Name, r_Point))    
 
     return restaurants
+
+def get_districts_tr(city):
+    districts_tr = []
+
+    soup = linker('https://www.yemeksepeti.com/' + city)
+    district = soup.find("optgroup", label = "Diğer Semtler")
+    
+    for i in district.stripped_strings:
+        districts_tr.append(i)
+
+    return districts_tr
+
+
