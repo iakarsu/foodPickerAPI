@@ -64,3 +64,16 @@ def evaulate_restaurants(keyword, city, district):
 
 
     return restaurants_new
+
+
+@app.get("/districts_tr/{city}")
+def get_districts_tr(city):
+    districts_tr = []
+
+    soup = mw.linker('https://www.yemeksepeti.com/' + city)
+    district = soup.find("optgroup", label = "Diğer Semtler")
+    
+    for i in district.stripped_strings:
+        districts_tr.append(i)
+
+    return districts_tr
