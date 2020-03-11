@@ -5,13 +5,11 @@ from operator import attrgetter
 import os, csv, json
 
 def linker(url):
-    try:
-        req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        web_byte = urlopen(req).read() 
-        webpage = web_byte.decode('utf-8')
-        soup = BeautifulSoup(webpage, 'html.parser')
-    except URLError as e:
-        print(e)
+
+    req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+    web_byte = urlopen(req).read() 
+    webpage = web_byte.decode('utf-8')
+    soup = BeautifulSoup(webpage, 'html.parser')
 
     return soup
 
@@ -22,8 +20,8 @@ def csv_writer(file_path, file_name, file_type, file_content):
         writer.writerows(file_content)
 
 def list_sorter(list_, index_):
-    list_ = sorted(list_, key = attrgetter(index_))
-    return list_
+    sorted_list = sorted(list_, key = attrgetter(index_))
+    return sorted_list
 
 def district_purifier(district):
     list = {'ç': 'c', 'ğ': 'g', 'ı': 'i', 'İ': 'i', 'i̇': 'i', 'ş': 's', 'ö': 'o', 'ü': 'u', ' ': '-', '(': '', ')': '', '.': '', '–': '', '--': '-'}
@@ -39,25 +37,27 @@ def district_purifier(district):
     for i in district:
             district = district.replace(dash, '-')
 
-    print(district)
     return district
 
 def user_admin_cleaner(comments, admin_comments):
-    
-    for i in admin_comments:
-        if i in comments:
-            comments.remove(i)
+    if admin_comments is not None:
+        for i in admin_comments:
+            if i in comments:
+                comments.remove(i)
 
     return comments
 
 def comment_cleaner(comments, keyword):
     comment_found =  []
 
-    for i in comments:
-        if keyword in i.text: 
-            comment_found.append(i)
+    if(comments is not None):
+        for i in comments:
+            if keyword in i.text: 
+                comment_found.append(i)
 
-    return comment_found
+        return comment_found
+    else:
+        return []
     
 def average_calculator(comments):
     averageSpeed = 0
@@ -107,32 +107,33 @@ def get_comments(url):
 
 
                 sub = linker(sub_url)
-                sub_soup = sub
+                if(sub is not None):
+                    sub_soup = sub
 
-                comments_all = sub_soup.find('div', class_= 'comments allCommentsArea') 
-                
-                user_comment_speed = comments_all.findAll('div', class_='speed')
-                user_comment_service = comments_all.findAll('div', class_='flavour')
-                user_comment_taste = comments_all.findAll('div', class_='serving')
-                user_comments = comments_all.findAll('div', class_='comment row')
-                admin_comments = comments_all.findAll('div', class_='comments-body comments-restaurant')
+                    comments_all = sub_soup.find('div', class_= 'comments allCommentsArea') 
+                    
+                    user_comment_speed = comments_all.findAll('div', class_='speed')
+                    user_comment_service = comments_all.findAll('div', class_='flavour')
+                    user_comment_taste = comments_all.findAll('div', class_='serving')
+                    user_comments = comments_all.findAll('div', class_='comment row')
+                    admin_comments = comments_all.findAll('div', class_='comments-body comments-restaurant')
 
-                for j in user_comments:
-                    clean_user_comments.append(j.p.text)
+                    for j in user_comments:
+                        clean_user_comments.append(j.p.text)
 
-                for j in admin_comments:
-                    clean_admin_comments.append(j.p.text)    
+                    for j in admin_comments:
+                        clean_admin_comments.append(j.p.text)    
 
-                for j in user_comment_speed:
-                    clean_user_speed.append(j.text)
+                    for j in user_comment_speed:
+                        clean_user_speed.append(j.text)
 
-                for j in user_comment_service:
-                    clean_user_service.append(j.text)
+                    for j in user_comment_service:
+                        clean_user_service.append(j.text)
 
-                for j in user_comment_taste:
-                    clean_user_taste.append(j.text)    
+                    for j in user_comment_taste:
+                        clean_user_taste.append(j.text)    
 
-                i += 1
+                    i += 1
 
 
             clean_user_comments = user_admin_cleaner(clean_user_comments, clean_admin_comments)    
@@ -141,8 +142,6 @@ def get_comments(url):
                 comments.append(comment(clean_user_speed[i], clean_user_service[i], clean_user_taste[i], clean_user_comments[i]))
 
             return comments
-        else:
-            return []
     else:
         return []
 
@@ -154,29 +153,89 @@ def get_current_restaurant_information(city, district):
     url = 'https://www.yemeksepeti.com/' + city + '/' + district 
     soup = linker(url)
 
-    restaurant = soup.find('div', class_ = 'ys-reslist')
+    if(soup is not None):
 
-    restaurant_links = restaurant.findAll('a', href=True, class_='restaurantName')
-    restaurant_names = restaurant.findAll('span', class_ = None)
-    restaurant_points = restaurant.findAll('span', class_ = 'point')
-    
-    for i in range(len(restaurant_points)):
-        r_Link = 'https://www.yemeksepeti.com' + restaurant_links[i]['href']
-        r_Name = restaurant_names[i].text
-        r_Point = restaurant_points[i].text
-        restaurants.append(lokanta(r_Link, r_Name, r_Point))    
+        restaurant = soup.find('div', class_ = 'ys-reslist')
 
-    return restaurants
+        restaurant_links = restaurant.findAll('a', href=True, class_='restaurantName')
+        restaurant_names = restaurant.findAll('span', class_ = None)
+        restaurant_points = restaurant.findAll('span', class_ = 'point')
+        
+        for i in range(len(restaurant_points)):
+            r_Link = 'https://www.yemeksepeti.com' + restaurant_links[i]['href']
+            r_Name = restaurant_names[i].text
+            r_Point = restaurant_points[i].text
+            restaurants.append(lokanta(r_Link, r_Name, r_Point))    
+
+        return restaurants
+    else:
+        return []
 
 def get_districts_tr(city):
     districts_tr = []
 
     soup = linker('https://www.yemeksepeti.com/' + city)
+    if(soup is not None):
+        district = soup.find("optgroup", label = "Diğer Semtler")
+        
+        for i in district.stripped_strings:
+            districts_tr.append(i)
+
+        return districts_tr
+    else:
+        return 'Connection Error'
+
+def get_districts(city):
+    districts = []
+
+    soup = linker('https://www.yemeksepeti.com/' + city)
     district = soup.find("optgroup", label = "Diğer Semtler")
     
     for i in district.stripped_strings:
-        districts_tr.append(i)
+        districts.append(i)
 
-    return districts_tr
+    for i in range(len(districts)):
+        districts[i] = district_purifier(districts[i])
+
+    return district
+
+def get_cities():
+    cities = []
+
+    soup = linker('https://www.yemeksepeti.com/sehir-secim')
+    city = soup.findAll('a', href=True, class_='cityLink col-md-1')
+
+    for i in city:
+        cities.append(i['href'][1:])
+    
+    return cities
+
+def evaluate_restaurants(keyword, city, district):
+    current_restaurants = get_current_restaurant_information(city, district)
+
+    Restaurant = namedtuple('restaurant', ['link', 'name', 'formalAverage'])
+    New_Restaurant = namedtuple('n_restaurant', ['name', 'formalAverage', 'averageSpeed', 'averageService', 'averageTaste'])
+    restaurants = []
+    restaurants_new = []
+    j = 0
+
+    for i in current_restaurants:
+        restaurants.append(Restaurant(i.link, i.name, i.formalAverage))
+        comments = get_comments(i.link)
+        
+        if(comments is not None):
+            clean_comments = comment_cleaner(comments, keyword)
+
+            if len(clean_comments) > 2:
+                new_points = average_calculator(clean_comments)
+                restaurants_new.append(New_Restaurant(restaurants[j].name, restaurants[j].formalAverage, new_points['averageSpeed'], new_points['averageService'], new_points['averageTaste']))
+        
+        print(i.link)
+        print("----------------------------")
+        
+        j+=1
+    
+    return restaurants
+
 
 
