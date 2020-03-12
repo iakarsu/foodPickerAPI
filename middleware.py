@@ -187,27 +187,31 @@ def get_districts(city):
     url = 'https://www.yemeksepeti.com/' + city
     soup = linker(url)
     district = soup.find("optgroup", label = "Diğer Semtler")
-    options = district.findAll('option')
+    if(soup is not None):
+        options = district.findAll('option')
 
-    for i in options:
-        aid = i['value']
-        name = i.text
-        url = i['data-url']
-        districts.append(District(name, aid, url))
+        for i in options:
+            aid = i['value']
+            name = i.text
+            url = i['data-url']
+            districts.append(District(name, aid, url))
 
-    print(type(districts))
-    return districts
+        return districts
+    else:
+        return 'Conntection Error'
 
 def get_cities():
     cities = []
+    if(soup is not None):
+        soup = linker('https://www.yemeksepeti.com/sehir-secim')
+        city = soup.findAll('a', href=True, class_='cityLink col-md-1')
 
-    soup = linker('https://www.yemeksepeti.com/sehir-secim')
-    city = soup.findAll('a', href=True, class_='cityLink col-md-1')
-
-    for i in city:
-        cities.append(i['href'][1:])
-    
-    return cities
+        for i in city:
+            cities.append(i['href'][1:])
+        
+        return cities
+    else:
+        return 'Connection Error'
 
 def get_current_restaurant_information(city, district):
     restaurants = []
@@ -242,47 +246,54 @@ def get_restaurant_informations_for_keyword(city, aid, keyword):
     url = 'https://www.yemeksepeti.com/' + city + '/arama#ors:true|st:' + keyword + '|aid:' + aid 
     soup = selenium_linker(url)
 
-    restaurant = soup.find('div', class_ = 'ys-result-items')
-    restaurant_info = restaurant.findAll('a', href=True, class_='restaurantName')
-    restaurant_points = restaurant.findAll('span', class_ = 'point')
-  
-    print(len(restaurant_info))
+    if(soup is not None):
 
-    for i in range(len(restaurant)):
-        r_Link = 'https://www.yemeksepeti.com' + restaurant_info[i]['href']
-        r_Name = restaurant_info[i].text
-        r_Point = restaurant_points[i].text
-        restaurants.append(lokanta(r_Link, r_Name, r_Point))    
+        restaurant = soup.find('div', class_ = 'ys-result-items')
+        restaurant_info = restaurant.findAll('a', href=True, class_='restaurantName')
+        restaurant_points = restaurant.findAll('span', class_ = 'point')
+    
+        print(len(restaurant_info))
 
-    return restaurants
+        for i in range(len(restaurant)):
+            r_Link = 'https://www.yemeksepeti.com' + restaurant_info[i]['href']
+            r_Name = restaurant_info[i].text
+            r_Point = restaurant_points[i].text
+            restaurants.append(lokanta(r_Link, r_Name, r_Point))    
+
+        return restaurants
+    else:
+        return []
 
 def evaluate_restaurants(city, aid, district, keyword):
     current_restaurants = get_restaurant_informations_for_keyword(city, aid, keyword)
 
     Restaurant = namedtuple('restaurant', ['link', 'name', 'formalAverage'])
-    New_Restaurant = namedtuple('n_restaurant', ['name', 'formalAverage', 'averageSpeed', 'averageService', 'averageTaste'])
+    New_Restaurant = namedtuple('n_restaurant', ['name', 'formalAverage', 'averageSpeed', 'averageService', 'averageTaste','comment_count', 'clean_comment_count'])
 
     restaurants = []
     restaurants_new = []
     j = 0
 
-    print(current_restaurants)
+    if(current_restaurants is not None):
 
-    for i in current_restaurants:
-        restaurants.append(Restaurant(i.link, i.name, i.formalAverage))
-        comments = get_comments(i.link)
-        clean_comments = comment_cleaner(comments, keyword)
+        for i in current_restaurants:
+            restaurants.append(Restaurant(i.link, i.name, i.formalAverage))
+            comments = get_comments(i.link)
+            clean_comments = comment_cleaner(comments, keyword)
 
-        if len(clean_comments) > 2:
-            new_points = average_calculator(clean_comments)
-            restaurants_new.append(New_Restaurant(restaurants[j].name, restaurants[j].formalAverage, new_points['averageSpeed'], new_points['averageService'], new_points['averageTaste']))
-       
-        print(i.link)
-        print("----------------------------")
+            if len(clean_comments) > 2:
+                new_points = average_calculator(clean_comments)
+                restaurants_new.append(New_Restaurant(restaurants[j].name, restaurants[j].formalAverage, new_points['averageSpeed'], new_points['averageService'], new_points['averageTaste'], len(comments), len(clean_comments)))
+        
+            print(i.link)
+            print("----------------------------")
 
-        j+=1
+            j+=1
 
-    return restaurants_new
+        return restaurants_new
+    else:
+        return 'Connecion Error'
+
 
 
 
