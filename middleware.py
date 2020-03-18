@@ -201,17 +201,23 @@ def get_districts(city):
         return 'Conntection Error'
 
 def get_cities():
+    City = namedtuple('city', ['name', 'url'])
     cities = []
-    if(soup is not None):
-        soup = linker('https://www.yemeksepeti.com/sehir-secim')
-        city = soup.findAll('a', href=True, class_='cityLink col-md-1')
 
-        for i in city:
-            cities.append(i['href'][1:])
-        
-        return cities
-    else:
-        return 'Connection Error'
+    soup = linker('https://www.yemeksepeti.com/sehir-secim')
+    
+    city_link = soup.findAll('a', href=True, class_='cityLink col-md-1')
+    city_name = soup.findAll('span', class_='name')
+
+    for i in range(len(city_link)):
+        name = city_name[i].text
+        link = city_link[i]['href'][1:]
+        cities.append(City(name, link))
+
+    # with open('cities.json', 'w') as outfile:
+    #     json.dump(cities, outfile)
+
+    return cities
 
 def get_current_restaurant_information(city, district):
     restaurants = []
