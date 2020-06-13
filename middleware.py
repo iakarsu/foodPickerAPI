@@ -182,9 +182,7 @@ def get_districts(city):
             url = i['data-url']
             District = {"name": name, "aid": aid, "url": url}
             districts.append(District)
-
-        districts_json = json.dumps(districts, ensure_ascii=False)
-        return districts_json
+        return districts
     else:
         return 'Conntection Error'
 
