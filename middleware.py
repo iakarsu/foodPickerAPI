@@ -166,37 +166,25 @@ def get_comments(url):
     else:
         return []
 
-def get_districts_tr(city):
-    districts_tr = []
-
-    soup = linker('https://www.yemeksepeti.com/' + city)
-    if(soup is not None):
-        district = soup.find("optgroup", label = "Diğer Semtler")
-        
-        for i in district.stripped_strings:
-            districts_tr.append(i)
-
-        return districts_tr
-    else:
-        return 'Connection Error'
-
 def get_districts(city):
-    District = namedtuple('district', ['name', 'aid', 'url'])
     districts = []
 
     url = 'https://www.yemeksepeti.com/' + city
     soup = linker(url)
     district = soup.find("optgroup", label = "Diğer Semtler")
-    if(soup is not None):
+
+    if(soup):
         options = district.findAll('option')
 
         for i in options:
             aid = i['value']
             name = i.text
             url = i['data-url']
-            districts.append(District(name, aid, url))
+            District = {"name": name, "aid": aid, "url": url}
+            districts.append(District)
 
-        return districts
+        districts_json = json.dumps(districts, ensure_ascii=False)
+        return districts_json
     else:
         return 'Conntection Error'
 

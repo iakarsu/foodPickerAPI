@@ -17,11 +17,6 @@ def get_cities():
 def get_districts(city):
     return mw.get_districts(city)
 
-
-@app.get("/districts_tr/{city}")
-def get_districts_tr(city):
-    return mw.get_districts_tr(city)
-
 #Return average points of restaurants from desired city
 #desired district on related keyword
 @app.get("/average_of_restaurants/{city}/{aid}/{district}/{keyword}")
