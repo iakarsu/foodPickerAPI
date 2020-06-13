@@ -187,7 +187,6 @@ def get_districts(city):
         return 'Conntection Error'
 
 def get_cities():
-    City = namedtuple('city', ['name', 'url'])
     cities = []
 
     soup = linker('https://www.yemeksepeti.com/sehir-secim')
@@ -198,10 +197,8 @@ def get_cities():
     for i in range(len(city_link)):
         name = city_name[i].text
         link = city_link[i]['href'][1:]
-        cities.append(City(name, link))
-
-    # with open('cities.json', 'w') as outfile:
-    #     json.dump(cities, outfile)
+        City = {"city": name, "link": link}
+        cities.append(City)
 
     return cities
 
