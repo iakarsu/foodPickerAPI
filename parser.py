@@ -42,7 +42,7 @@ def selenium_linker(url):
     delay = 5 # seconds
     i = 0
 
-    while i<2100:
+    while i<1000:
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         #restaurant = WebDriverWait(driver, delay).until(EC.presence_of_element_located((By.CLASS_NAME, 'ys-result-items')))
         i += 1  
