@@ -1,5 +1,4 @@
-For installing required packages:
-        pip install --upgrade -r requirements.txt
+.env dosyasının içerisine DB_STRING değişkenine database connection stringi eklenir
 
-For starting application:
-        uvicorn main:app --reload
+pip install -r requirements.txt
+uvicorn main:app --reload
