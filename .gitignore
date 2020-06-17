@@ -20,6 +20,7 @@ parts/
 sdist/
 var/
 wheels/
+ys_api/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
@@ -112,7 +113,6 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-ys_api/
 
 # Spyder project settings
 .spyderproject
@@ -137,3 +137,8 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+#recorder data
+data.json
+
+settings.json
