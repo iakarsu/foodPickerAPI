@@ -1,5 +1,5 @@
 import mw as mw
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 app = FastAPI()
 
@@ -17,7 +17,11 @@ async def get_districts(city_id):
     if(districts):
         return districts
     else:
-        return {"404 Not Found"}
+        raise HTTPException(
+            status_code=404,
+            detail="Item not found",
+            headers={"City-id": "City id is not correct"},
+        )
 
 #Return average points of restaurants from desired city
 #desired district on related keyword
@@ -27,6 +31,10 @@ async def evaulate_restaurants(city, district_id, keyword):
     if(restaurants):
         return restaurants
     else:
-        return {"404 Not Found"}
+        raise HTTPException(
+            status_code=404,
+            detail="Item not found",
+            headers={"Restaurants": "Restaurants have not found"},
+        )
     
 

@@ -50,6 +50,7 @@ def selenium_linker(url):
     restaurant = WebDriverWait(driver, delay).until(EC.presence_of_element_located((By.CLASS_NAME, 'ys-result-items')))
     restaurant_html = restaurant.get_attribute("outerHTML")
     soup = BeautifulSoup(restaurant_html, features="html.parser")
+    print('done!')
     driver.close()
     return soup
 

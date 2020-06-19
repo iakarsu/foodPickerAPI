@@ -24,7 +24,6 @@ def get_district_names(city_id):
 def get_restaurants(city, district_id, keyword):
     new_restaurants = []
     district = session.query(District).filter(District.id == district_id).first()
-    print(district)
 
     #istenen keyword için o bölgedeki restoranlar dinamik olarak taranır, açık olup database de verisi olan restoranlar
     #proper list olarak döndürülür
