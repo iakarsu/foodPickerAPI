@@ -9,9 +9,11 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 from selenium.common.exceptions import TimeoutException
-import os, csv, json, time, httplib2
-from models import session, City, District, Restaurant, Comment, Pending_Restaurants
-import db_functions as db
+import os, csv, json, time, httplib2, requests
+from dotenv import load_dotenv
+
+load_dotenv(verbose=True)
+api_url = os.getenv("DB_URL")
 
 def jsonWriter(list):
     with open('data.json', 'w', encoding='utf-8') as f:
@@ -50,7 +52,6 @@ def selenium_linker(url):
     restaurant = WebDriverWait(driver, delay).until(EC.presence_of_element_located((By.CLASS_NAME, 'ys-result-items')))
     restaurant_html = restaurant.get_attribute("outerHTML")
     soup = BeautifulSoup(restaurant_html, features="html.parser")
-    print('done!')
     driver.close()
     return soup
 
@@ -92,7 +93,7 @@ def comment_cleaner(comments, keyword):
     comment_found =  []
 
     for i in comments:
-        if keyword in i.text: 
+        if keyword in i['text']: 
             comment_found.append(i)
 
     return comment_found
@@ -105,14 +106,14 @@ def average_calculator(comments):
 
     for i in comments:
         #check if restaurant has valet service
-        if(i.speed != 0):
-            speed = int(i.speed[5:])
+        if(i['speed'] != 0):
+            speed = int(i['speed'][5:])
             averageSpeed += speed / length
         else:
             averageSpeed += 0
 
-        service = int(i.service[8:])
-        taste = int(i.taste[8:])
+        service = int(i['service'][8:])
+        taste = int(i['taste'][8:])
         averageService += service / length
         averageTaste += taste / length
 
@@ -121,24 +122,26 @@ def average_calculator(comments):
 def checkRestaurants(restaurants, district_id):
     proper_list = []
     unproper_list = []
-
+    recorded_restaurants = requests.get(api_url + '/get_restaurants_names/').json()
+    pending_restaurants = requests.get(api_url + '/get_pending_restaurants_names').json()
+    
+    #restoranların hepsini çek, işlediğimiz restoran restoranların içindeyse proper liste ekle, değilse pending'te mi diye kontrol et
     #eğer aranan restoranlar db de yoksa onları db ye ekle sonra restoranları çek
     for restaurant in restaurants:
         #restoran db de mi?
-        rest = session.query(Restaurant).filter(Restaurant.link == restaurant.link).first()
-        if (rest):
-            proper_list.append(rest)
-        else:
+        if(restaurant.name in recorded_restaurants):
+            proper_list.append(restaurant)
+        elif(restaurant.name in pending_restaurants):
             #restoran zaten unproperlere eklenmiş mi?
-            unp = session.query(Pending_Restaurants).filter(Pending_Restaurants.link == restaurant.link).first()
-            if(unp):
-                print(restaurant.name + " restaurant already in pending list")
-            else:
-                print(restaurant)
-                unproper_list.append(restaurant)
+            print(restaurant.name + " restaurant already in pending list")
+        else:
+            print(restaurant.name + " restaurant has added to unproper list")
+            r = {"link": restaurant.link, "name": restaurant.name, "formalAverage": restaurant.formalAverage}
+            unproper_list.append(r)
 
     #restoranları pending tablosuna ekle
-    db.import_to_pending_restaurants(district_id, unproper_list)
+    unproper_list = json.dumps(unproper_list, ensure_ascii=False)
+    post = requests.post(api_url + '/import_to_pending_restaurants/'+ str(district_id),  json = unproper_list)
 
     return proper_list
    
@@ -178,6 +181,27 @@ def get_restaurant_informations_for_keyword(city, aid, keyword):
     restaurant = soup.find('div', class_ = 'ys-result-items')
     restaurant_info = restaurant.findAll('a', href=True, class_='restaurantName')
     restaurant_points = restaurant.findAll('span', class_ = 'point')
+
+    if len(restaurant_info) > 0:
+        for i in range(len(restaurant)):
+            r_Link = 'https://www.yemeksepeti.com' + restaurant_info[i]['href']
+            r_Name = restaurant_info[i].text
+            r_Point = restaurant_points[i].text
+            restaurants.append(lokanta(r_Link, r_Name, r_Point))    
+        return restaurants
+    else: 
+        return None
+
+def get_only_restaurant_names_for_keyword(city, aid, keyword):
+    restaurants = []
+    lokanta = namedtuple('lokanta', ['link', 'name', 'formalAverage']) 
+
+    url = 'https://www.yemeksepeti.com/' + city + '/arama#ors:true|st:' + keyword + '|aid:' + aid 
+    soup = selenium_linker(url)
+
+    restaurant = soup.find('div', class_ = 'ys-result-items')
+    restaurant_info = restaurant.findAll('a', href=True, class_='restaurantName')
+    restaurant_points = restaurant.findAll('span', class_ = 'point')
   
     print(len(restaurant_info))
     if len(restaurant_info) > 0:
@@ -188,54 +212,31 @@ def get_restaurant_informations_for_keyword(city, aid, keyword):
             restaurants.append(lokanta(r_Link, r_Name, r_Point))    
         return restaurants
     else: 
-        return []
+        return None
 
-def evaulate_restaurants(city, aid, district, keyword):
-    #get restaurants for desired keyword from desired district
-    current_restaurants = get_restaurant_informations_for_keyword(city, aid, keyword)
+def get_restaurants(city, district_id, keyword):
+    new_restaurants = []
 
-    #restaurant is ordinary restaurant
-    Restaurant = namedtuple('restaurant', ['link', 'name', 'formalAverage'])
+    district = requests.get(api_url + '/districts/get_district/' + str(district_id)).json()
 
-    #new restaurant is restaurant included new points calculated by our program
-    New_Restaurant = namedtuple('n_restaurant', ['name', 'formalAverage', 'calculatedAverage', 'averageSpeed', 'averageService', 'averageTaste', 'total_comments', 'clean_comments'])
+    #istenen keyword için o bölgedeki restoranlar dinamik olarak taranır, açık olup database de verisi olan restoranlar
+    #proper list olarak döndürülür
+    restaurants = get_restaurant_informations_for_keyword(city, district['district_y_id'], keyword)
+    proper_list = checkRestaurants(restaurants, district_id)
 
-    restaurants = []
-    restaurants_new = []
-    j = 0
-
-    for i in current_restaurants:
-        if(i):
-            restaurants.append(Restaurant(i.link, i.name, i.formalAverage))
-            comments = get_comments(i.link)
-            clean_comments = comment_cleaner(comments, keyword)
-
-            if len(clean_comments) > 2:
-                new_points = average_calculator(clean_comments)
-                if(new_points['averageSpeed'] != 0):
-                    calculatedAverage = (new_points['averageSpeed'] + new_points['averageService'] + new_points['averageTaste']) / 3
-                else:
-                    calculatedAverage = (new_points['averageService'] + new_points['averageTaste']) / 2
-
-                restaurants_new.append(New_Restaurant(restaurants[j].name, restaurants[j].formalAverage, calculatedAverage,
-                                        new_points['averageSpeed'], new_points['averageService'], new_points['averageTaste'], len(comments), len(clean_comments)))
-            
-            # else:
-            #     restaurants_new.append(New_Restaurant(restaurants[j].name, restaurants[j].formalAverage, 0,
-            #                             0, 0, 0, len(comments), 0))
-        
-            print(i.link)
-            print(j)
-            print("----------------------------")
-        else:
-            restaurants.append("")
-
-        j+=1
-
-    restaurants_new = list_sorter(restaurants_new, 'calculatedAverage')
-    file_path = os.path.abspath(os.getcwd())
-    file_name = city + district + ':' + keyword
-    file_type = New_Restaurant
-    file_content = restaurants_new
-
-    return restaurants_new
+    for restaurant in proper_list:
+        link = restaurant.link[28:]
+        comments = requests.get(api_url + '/get_restaurant_comments/' + link ).json()
+        clean_comments = comment_cleaner(comments, keyword)
+        if len(clean_comments) >= 5:
+            new_points = average_calculator(clean_comments)
+            if(new_points['averageSpeed'] != 0):
+                calculatedAverage = (new_points['averageSpeed'] + new_points['averageService'] + new_points['averageTaste']) / 3
+            else:
+                calculatedAverage = (new_points['averageService'] + new_points['averageTaste']) / 2
+            new_restaurant = {"name": restaurant.name, "formalAverage": restaurant.formalAverage, "calculatedAverage": calculatedAverage,
+                                "averageSpeed": new_points['averageSpeed'], "averageService": new_points['averageService'],
+                                "averageTaste": new_points['averageTaste'], "totalComments": len(comments), "clean_comments": len(clean_comments)}
+            new_restaurants.append(new_restaurant)
+    #p.jsonWriter(new_restaurants)
+    return new_restaurants
