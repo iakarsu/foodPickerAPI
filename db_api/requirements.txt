@@ -1,5 +1,5 @@
 brotli==1.0.7
-cryptography==2.9.2
+cryptography==3.2
 Cython==0.29.20
 fastapi==0.58.0
 ipaddr==2.2.0
